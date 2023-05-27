@@ -1,0 +1,30 @@
+---
+name: deploy helm repo
+on:
+  push:
+    branches: main
+  pull_request:
+    branches: main
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    name: build example and deploy to minikube
+    steps:
+    - uses: actions/checkout@v2
+    - name: Start minikube
+      uses: medyagh/setup-minikube@master
+    - name: Try the cluster !
+      run: kubectl get pods -A
+    - name: helm deploy
+      run: |
+          helm repo add myhelmrepo https://ron8cr.github.io/my-helm-repo/
+          helm install -n default hello-world myhelmrepo/mychart --version 0.1.0
+          kubectl get pods
+          export NODE_PORT=$(kubectl get --namespace default -o jsonpath="{.spec.ports[0].nodePort}" services nginx-chart)
+          export NODE_IP=$(kubectl get nodes --namespace default -o jsonpath="{.items[0].status.addresses[0].address}")
+          echo http://$NODE_IP:$NODE_PORT
+          echo 'Pod is getting ready for the action'
+          sleep 50
+          kubectl get pods
+          echo 'Accessing nginx webpage from Node'
+          curl http://$NODE_IP:$NODE_PORT
